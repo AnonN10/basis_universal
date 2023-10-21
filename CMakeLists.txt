@@ -1,31 +1,33 @@
 project(basisu)
 
 cmake_minimum_required(VERSION 3.0)
-option(STATIC "static linking" FALSE)
-option(SAN "sanitize" FALSE)
+option(BASISU_BUILD_LIB "build the project as a library instead of CLI tool" FALSE)
+option(BASISU_STATIC "static linking" FALSE)
+option(BASISU_SAN "sanitize" FALSE)
 
 # For MSVC builds default to SSE enabled, and determine if it's a 64-bit (-A x64) vs. 32-bit (-A Win32) build.
 if (MSVC)
-	option(SSE "SSE 4.1 support" TRUE)
+	option(BASISU_SSE "SSE 4.1 support" TRUE)
 	if ( CMAKE_GENERATOR_PLATFORM STREQUAL Win32 )	
-		set(BUILD_X64 0)
+		set(BASISU_BUILD_X64 0)
 	else()
-		set(BUILD_X64 1)
+		set(BASISU_BUILD_X64 1)
 	endif()
 else()
-	option(SSE "SSE 4.1 support" FALSE)
-	option(BUILD_X64 "build 64-bit" TRUE)
+	option(BASISU_SSE "SSE 4.1 support" FALSE)
+	option(BASISU_BUILD_X64 "build 64-bit" TRUE)
 endif()
 
-option(ZSTD "ZSTD support for KTX2 transcoding/encoding" TRUE)
-option(OPENCL "OpenCL support in encoder" FALSE)
+option(BASISU_ZSTD "ZSTD support for KTX2 transcoding/encoding" TRUE)
+option(BASISU_OPENCL "OpenCL support in encoder" FALSE)
 
-message("Initial BUILD_X64=${BUILD_X64}")
+message("Initial BASISU_BUILD_X64=${BASISU_BUILD_X64}")
 message("Initial CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
-message("Initial SSE=${SSE}")
-message("Initial ZSTD=${ZSTD}")
-message("Initial OPENCL=${OPENCL}")
-message("Initial SAN=${SAN}")
+message("Initial BASISU_BUILD_LIB=${BASISU_BUILD_LIB}")
+message("Initial BASISU_SSE=${BASISU_SSE}")
+message("Initial BASISU_ZSTD=${ZSTD}")
+message("Initial BASISU_OPENCL=${OPENCL}")
+message("Initial BASISU_SAN=${BASISU_SAN}")
 
 if (NOT MSVC)
 	# With MSVC builds we use the Khronos lib/include files in the project's "OpenCL" directory, to completely avoid requiring fiddly to install vendor SDK's.
@@ -42,19 +44,19 @@ endif()
 
 message( ${PROJECT_NAME} " build type: " ${CMAKE_BUILD_TYPE} )
 
-if (BUILD_X64)
+if (BASISU_BUILD_X64)
 	message("Building 64-bit")
 else()
 	message("Building 32-bit")
 endif()
 
-if (SSE)
+if (BASISU_SSE)
 	message("SSE enabled")
 else()
 	message("SSE disabled")
 endif()
 
-if (ZSTD)
+if (BASISU_ZSTD)
 	message("Zstandard enabled")
 else()
 	message("Zstandard disabled")
@@ -67,7 +69,7 @@ if (NOT MSVC)
    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
 
-   if (SAN)
+   if (BASISU_SAN)
       set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined")
       set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined")
    endif()
@@ -84,8 +86,8 @@ if (NOT MSVC)
 	  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -s ALLOW_MEMORY_GROWTH=1 -DBASISU_SUPPORT_SSE=0")
 
 	  set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_LINK_FLAGS}")
-   elseif (STATIC)
-      if (SSE)
+   elseif (BASISU_STATIC)
+      if (BASISU_SSE)
 		set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -DBASISU_SUPPORT_SSE=1 -msse4.1")
 		set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DBASISU_SUPPORT_SSE=1 -msse4.1")
 	  else()
@@ -95,7 +97,7 @@ if (NOT MSVC)
 	  
 	  set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_LINK_FLAGS} -static-libgcc -static-libstdc++ -static")
    else()
-   	  if (SSE)
+   	  if (BASISU_SSE)
 		set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -DBASISU_SUPPORT_SSE=1 -msse4.1")
 		set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DBASISU_SUPPORT_SSE=1 -msse4.1")
 	  else()
@@ -114,7 +116,7 @@ if (NOT MSVC)
    set(CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS_RELEASE} ${GCC_COMPILE_FLAGS}")
    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${GCC_COMPILE_FLAGS} -D_DEBUG")
 else()
-	if (SSE)
+	if (BASISU_SSE)
 		set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -DBASISU_SUPPORT_SSE=1")
 		set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DBASISU_SUPPORT_SSE=1")
 	else()
@@ -124,7 +126,7 @@ else()
 endif()
 
 set(BASISU_SRC_LIST ${COMMON_SRC_LIST} 
-	basisu_tool.cpp
+	
 	encoder/basisu_backend.cpp
 	encoder/basisu_basis_file.cpp
 	encoder/basisu_comp.cpp
@@ -145,7 +147,7 @@ set(BASISU_SRC_LIST ${COMMON_SRC_LIST}
 	transcoder/basisu_transcoder.cpp
 	)
 
-if (ZSTD)
+if (BASISU_ZSTD)
 	set(BASISU_SRC_LIST ${BASISU_SRC_LIST} zstd/zstd.c)
 endif()
 
@@ -157,9 +159,15 @@ endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${BIN_DIRECTORY})
 
-add_executable(basisu ${BASISU_SRC_LIST})
+if (BASISU_BUILD_LIB)
+	add_library(basisu ${BASISU_SRC_LIST})
+	message("basis_universal is configured to be built as a library")
+else()
+	set(BASISU_SRC_LIST ${BASISU_SRC_LIST} basisu_tool.cpp)
+	add_executable(basisu ${BASISU_SRC_LIST})
+endif()
 
-if (ZSTD)
+if (BASISU_ZSTD)
 	target_compile_definitions(basisu PRIVATE BASISD_SUPPORT_KTX2_ZSTD=1)
 else()
 	target_compile_definitions(basisu PRIVATE BASISD_SUPPORT_KTX2_ZSTD=0)
@@ -177,13 +185,13 @@ if (NOT MSVC)
 
 else()
 	# For Windows builds, we use our local copies of the OpenCL import lib and Khronos headers.
-	if (OPENCL)
+	if (BASISU_OPENCL)
 		set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -DBASISU_SUPPORT_OPENCL=1")
 		set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DBASISU_SUPPORT_OPENCL=1")	
 		
 		target_include_directories( basisu PRIVATE "OpenCL" )
 
-		if ( BUILD_X64 )
+		if ( BASISU_BUILD_X64 )
 			target_link_libraries( basisu PRIVATE "OpenCL/lib/OpenCL64" )
 		else()
 			target_link_libraries( basisu PRIVATE "OpenCL/lib/OpenCL" )
