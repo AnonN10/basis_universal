@@ -161,6 +161,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${BIN_DIRECTORY})
 
 if (BASISU_BUILD_LIB)
 	add_library(basisu ${BASISU_SRC_LIST})
+	target_include_directories(basisu PUBLIC encoder transcoder)
 	message("basis_universal is configured to be built as a library")
 else()
 	set(BASISU_SRC_LIST ${BASISU_SRC_LIST} basisu_tool.cpp)
